@@ -124,6 +124,16 @@ Route::group([
     });
 
     Route::group([
+        'namespace'     => 'HT',
+        'prefix'        => 'ht/',
+        'as'			=> 'ht.',
+        'middleware' => ['auths']
+    ], function () {
+        Route::post('article', 'ArticleController@add')->name('add');
+        Route::get('article', 'ArticleController@search')->name('search');
+    });
+
+    Route::group([
         'namespace' => 'General',
         'prefix' => 'general/',
         'as' => 'general.'
