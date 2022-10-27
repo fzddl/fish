@@ -177,7 +177,7 @@ return [
 
         Laravel\Scout\ScoutServiceProvider::class,
         \Matchish\ScoutElasticSearch\ElasticSearchServiceProvider::class
-        
+
     ],
 
     /*

@@ -24,6 +24,7 @@ class ArticleController extends Controller
         }
 
         $param['iso'] = $request->header('iso');
+        $param['ip'] = $request->ip();
         $res = $this->articleService->add($param);
 
         if ($res['success']) {

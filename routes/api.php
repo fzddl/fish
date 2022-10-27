@@ -129,8 +129,12 @@ Route::group([
         'as'			=> 'ht.',
         'middleware' => ['auths']
     ], function () {
-        Route::post('article', 'ArticleController@add')->name('add');
-        Route::get('article', 'ArticleController@search')->name('search');
+        Route::post('article', 'ArticleController@add')->name('addArticle');
+        Route::get('article', 'ArticleController@search')->name('searchArticle');
+
+        Route::post('comment', 'CommentController@add')->name('addComment');
+        Route::post('reply', 'CommentController@reply')->name('addReply');
+        Route::get('comment', 'CommentController@lists')->name('CommentList');
     });
 
     Route::group([

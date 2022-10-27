@@ -6,24 +6,17 @@ use App\Models\Article;
 use App\Models\ArticleTopic;
 use App\Models\Friend;
 use App\Models\Topic;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 
 class ArticleService
 {
     public function add($param)
     {
-        $article_data = [
-            'title' => $param['title'],
-            'content' => $param['content'],
-            'pic' => $param['pic'],
-            'latitude' => $param['latitude'],
-            'longitude' => $param['longitude'],
-            'visible' => $param['visible'],
-            'iso' => $param['iso'],
-            'uid' => $param['uid'],
-        ];
+        $article_data = $param;
 
         $topic_ids = [];
+        $topic_data = [];
         $new_topic = [];
         if (!empty($param['topic'])) {
             $topic_json = json_decode($param['topic'], true);
@@ -41,17 +34,26 @@ class ArticleService
             }
 
             if (!empty($topic_ids)) {
-                $topic_ids = Topic::query()->select('id')->whereIn('id', $topic_ids)->get()->pluck('id')->toArray();
+                $topic_data = Topic::query()->select('id', 'title')->whereIn('id', $topic_ids)->get()->toArray();
             }
         }
 
-        DB::transaction(function () use ($article_data, $topic_ids, $new_topic) {
+        DB::transaction(function () use ($article_data, $topic_data, $new_topic) {
+            foreach ($new_topic as $topic) {
+                $res = Topic::create($topic);
+                array_push($topic_data, [
+                    'id' => $res->id,
+                    'title' => $res->title
+                ]);
+            }
+
+            $topic_ids = Arr::pluck($topic_data, 'id');
+
+            $article_data['topic_id_str'] = implode(',', $topic_ids);
+            $article_data['topic_title_str'] = implode(',', Arr::pluck($topic_data, 'title'));
+
             $new_article = Article::create($article_data);
             $article_id = $new_article->id;
-            foreach ($new_topic as $topic_data) {
-                $res = Topic::create($topic_data);
-                array_push($topic_ids, $res->id);
-            }
 
             $new_topic_relation = [];
             foreach ($topic_ids as $topic_id) {
@@ -82,7 +84,8 @@ class ArticleService
                     'query' => $param['keyword'],
                     'fields' => [
                         'title',
-                        'content'
+                        'content',
+                        'topic_title_str'
                     ]
                 ]
             ];
@@ -149,5 +152,13 @@ class ArticleService
         return $array;
     }
 
+    public static function exists($id)
+    {
+        return Article::where('id', $id)->exists();
+    }
 
+    public static function increment($id, $field)
+    {
+        Article::where('id', $id)->increment($field);
+    }
 }

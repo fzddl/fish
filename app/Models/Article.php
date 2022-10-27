@@ -12,7 +12,10 @@ class Article extends Model
     use HasFactory;
     use Searchable;
 
-    protected $fillable = ['title', 'pic', 'content', 'latitude', 'longitude', 'visible', 'iso', 'uid'];
+    protected $fillable = [
+        'title', 'pic', 'content', 'latitude', 'longitude', 'visible', 'iso', 'ip',
+        'uid', 'topic_id_str', 'topic_title_str'
+    ];
 
     public static function es()
     {
