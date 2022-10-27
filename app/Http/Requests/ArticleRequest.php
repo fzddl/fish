@@ -20,7 +20,8 @@ class ArticleRequest extends BaseRequest
         return [
             'page' => 'required|int|min:1',
             'limit' => 'required|int|min:1|max:50',
-            'keyword' => 'min:2'
+            'keyword' => 'min:2',
+            'type' => ['required', Rule::in(['follow', 'recommend'])]
         ];
     }
 

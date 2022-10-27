@@ -72,11 +72,72 @@ class ArticleService
     public function search($param)
     {
         $es = Article::es();
+        $friend_ids = Friend::query()->select('friend_id')->where('uid', $param['uid'])->get()->pluck('friend_id')->toArray();
 
+        if ($param['type'] == 'follow') {
+            $query = $this->getFollowQuery($param, $friend_ids);
+        } else {
+            $query = $this->getRecommendQuery($param, $friend_ids);
+        }
+
+        $start = $param['limit'] * ($param['page'] - 1);
+        $rs = $es->searchDoc($query, $start, $param['limit'], ['order' => ['id' => 'desc']]);
+        $array['total'] = $rs['total'];
+        if (isset($rs['data'])) {
+            foreach ($rs['data'] as $row) {
+                $array['rs'][] = $row['content'];
+            }
+        }
+
+        return $array;
+    }
+
+    private function getFollowQuery($param, $friend_ids)
+    {
         $query = [];
         $query['bool']['must'] = [];
 
-        $friend_ids = Friend::query()->select('friend_id')->where('uid', $param['uid'])->get()->pluck('friend_id')->toArray();
+        if (!empty($param['keyword'])) {
+            $query['bool']['must'][] = [
+                'multi_match' => [
+                    'query' => $param['keyword'],
+                    'fields' => [
+                        'title',
+                        'content',
+                        'topic_title_str'
+                    ]
+                ]
+            ];
+
+        }
+
+        $query['bool']['must'][] = [
+            'bool' => [
+                'must' => [
+                    [
+                        'terms' => [
+                            'uid' => $friend_ids
+                        ]
+                    ],
+                    [
+                        'term' => [
+                            'visible' => ['value' => 2]
+                        ]
+                    ]
+                ]
+            ]
+        ];
+
+
+
+
+        return $query;
+    }
+
+    private function getRecommendQuery($param, $friend_ids)
+    {
+        $query = [];
+        $query['bool']['must'] = [];
 
         if (!empty($param['keyword'])) {
             $query['bool']['must'][] = [
@@ -138,18 +199,7 @@ class ArticleService
             ]
         ];
 
-        //echo json_encode($query);
-
-        $start = $param['limit'] * ($param['page'] - 1);
-        $rs = $es->searchDoc($query, $start, $param['limit'], ['id' => 'desc']);
-        $array['total'] = $rs['total'];
-        if (isset($rs['data'])) {
-            foreach ($rs['data'] as $row) {
-                $array['rs'][] = $row['content'];
-            }
-        }
-
-        return $array;
+        return $query;
     }
 
     public static function exists($id)
