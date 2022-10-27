@@ -21,7 +21,7 @@ class ArticleRequest extends BaseRequest
             'page' => 'required|int|min:1',
             'limit' => 'required|int|min:1|max:50',
             'keyword' => 'min:2',
-            'type' => ['required', Rule::in(['follow', 'recommend'])]
+            'type' => ['required', Rule::in(['follow', 'recommend', 'mine'])]
         ];
     }
 

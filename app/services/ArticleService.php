@@ -76,6 +76,8 @@ class ArticleService
 
         if ($param['type'] == 'follow') {
             $query = $this->getFollowQuery($param, $friend_ids);
+        } elseif ($param['type'] == 'mine') {
+            $query = $this->getMineQuery($param, $friend_ids);
         } else {
             $query = $this->getRecommendQuery($param, $friend_ids);
         }
@@ -92,6 +94,41 @@ class ArticleService
         return $array;
     }
 
+    //自己的列表
+    private function getMineQuery($param, $friend_ids)
+    {
+        $query = [];
+        $query['bool']['must'] = [];
+
+        if (!empty($param['keyword'])) {
+            $query['bool']['must'][] = [
+                'multi_match' => [
+                    'query' => $param['keyword'],
+                    'fields' => [
+                        'title',
+                        'content',
+                        'topic_title_str'
+                    ]
+                ]
+            ];
+        }
+
+        $query['bool']['should'][] = [
+            'bool' => [
+                'must' => [
+                    [
+                        'term' => [
+                            'uid' => ['value' => $param['uid']]
+                        ]
+                    ]
+                ]
+            ]
+        ];
+
+        return $query;
+    }
+
+    //关注的列表
     private function getFollowQuery($param, $friend_ids)
     {
         $query = [];
@@ -108,7 +145,6 @@ class ArticleService
                     ]
                 ]
             ];
-
         }
 
         $query['bool']['must'][] = [
@@ -128,12 +164,10 @@ class ArticleService
             ]
         ];
 
-
-
-
         return $query;
     }
 
+    //推荐列表
     private function getRecommendQuery($param, $friend_ids)
     {
         $query = [];
@@ -150,7 +184,6 @@ class ArticleService
                     ]
                 ]
             ];
-
         }
 
         $query['bool']['should'][] = [
