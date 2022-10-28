@@ -47,17 +47,38 @@ class ArticleController extends Controller
 
     }
 
-    public function test()
+    //收藏
+    public function favorite(ArticleRequest $request)
     {
-//        $article = new Article();
-//        $article->title = '第二条测试，测试文章标题';
-//        $article->content = '第二条测试，测试文章内容';
-//        $article->save();
+        $param = $request->all();
+        if (empty($param['uid'])) { //调试
+            $param['uid'] = $request->get('_user')->id;
+        }
 
-        $res = Article::search('我是中国人，测试文章标题')->get()->toArray();
-        print_r($res);
+        if (!ArticleService::exists($param['article_id'])) {
+            return $this->error('The article is not exist');
+        }
 
-        return $this->success('');
+        $res = $this->articleService->favorite($param);
 
+        return $this->success($res);
     }
+
+    //点赞/反对
+    public function vote(ArticleRequest $request)
+    {
+        $param = $request->all();
+        if (empty($param['uid'])) { //调试
+            $param['uid'] = $request->get('_user')->id;
+        }
+
+        if (!ArticleService::exists($param['article_id'])) {
+            return $this->error('The article is not exist');
+        }
+
+        $res = $this->articleService->vote($param);
+
+        return $this->success($res);
+    }
+
 }

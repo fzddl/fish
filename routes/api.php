@@ -135,6 +135,10 @@ Route::group([
         Route::post('comment', 'CommentController@add')->name('addComment');
         Route::post('reply', 'CommentController@reply')->name('addReply');
         Route::get('comment', 'CommentController@lists')->name('CommentList');
+
+        Route::post('article/favorite', 'ArticleController@favorite')->name('favoriteArticle');
+        Route::post('article/vote', 'ArticleController@vote')->name('voteArticle');
+        Route::post('comment/vote', 'CommentController@vote')->name('voteComment');
     });
 
     Route::group([

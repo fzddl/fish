@@ -3,17 +3,21 @@
 namespace App\services;
 
 use App\Models\Article;
+use App\Models\ArticleFavorite;
 use App\Models\ArticleTopic;
 use App\Models\Friend;
 use App\Models\Topic;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Redis;
 
 class ArticleService
 {
     public function add($param)
     {
         $article_data = $param;
+        $article_data['vote_up_count'] = 0;
+        $article_data['vote_down_count'] = 0;
 
         $topic_ids = [];
         $topic_data = [];
@@ -25,7 +29,12 @@ class ArticleService
                     if (!Topic::where('title', $info['title'])->exists()) {
                         $new_topic[] = [
                             'title' => $info['title'],
-                            'uid' => $param['uid']
+                            'uid' => $param['uid'],
+                            'sort' => 0,
+                            'pic' => '',
+                            'article_count' => 0,
+                            'visited_count' => 0,
+                            'follow_count' => 0
                         ];
                     }
                 } else {
@@ -67,6 +76,64 @@ class ArticleService
         });
 
         return ['success' => true];
+    }
+
+    //收藏
+    public function favorite($param)
+    {
+        $log = ArticleFavorite::query()->where('uid', $param['uid'])
+            ->where('article_id', $param['article_id'])
+            ->first();
+
+        if ($param['status'] == 'on') {
+            if (!$log) {
+                DB::transaction(function() use($param) {
+                    ArticleFavorite::create([
+                        'article_id' => $param['article_id'],
+                        'uid' => $param['uid']
+                    ]);
+                    Article::where('id', $param['article_id'])->increment('favorite_count');
+                });
+            }
+        } else {
+            if ($log) {
+                DB::transaction(function() use($param, $log) {
+                    $log->delete();
+                    Article::where('id', $param['article_id'])->decrement('favorite_count');
+                });
+            }
+        }
+
+        self::searchable($param['article_id']);
+
+        $num = Article::query()->where('id', $param['article_id'])->value('favorite_count');
+
+        return $num;
+    }
+
+    //点赞/反对
+    public function vote($param)
+    {
+        $redis_key = sprintf('article_vote_%:%s', $param['type'], $param['article_id']);
+        $vote_field = sprintf('vote_%s_count', $param['type']);
+        $log = Redis::sismember($redis_key, $param['uid']);
+        if ($param['status'] == 'on') {
+            if (!$log) {
+                Redis::sadd($redis_key, $param['uid']);
+                Article::where('id', $param['article_id'])->increment($vote_field);
+            }
+        } else {
+            if ($log) {
+                Redis::srem($redis_key, $param['uid']);
+                Article::where('id', $param['article_id'])->decrement($vote_field);
+            }
+        }
+
+        self::searchable($param['article_id']);
+
+        $num = Article::query()->where('id', $param['article_id'])->value($vote_field);
+
+        return $num;
     }
 
     public function search($param)
@@ -238,6 +305,12 @@ class ArticleService
     public static function exists($id)
     {
         return Article::where('id', $id)->exists();
+    }
+
+    public static function searchable($id)
+    {
+        $article = Article::find($id);
+        $article->searchable();
     }
 
     public static function increment($id, $field)

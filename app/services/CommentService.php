@@ -5,6 +5,7 @@ namespace App\services;
 use App\Models\Comment;
 use App\Models\Reply;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Redis;
 
 class CommentService
 {
@@ -65,6 +66,41 @@ class CommentService
         }
 
         return $lists;
+    }
+
+    //点赞/反对
+    public function vote($param, $model)
+    {
+        $redis_key = sprintf('%s_vote_%:%s', $param['comment_type'], $param['type'], $param['id']);
+        $vote_field = sprintf('vote_%s_count', $param['type']);
+        $log = Redis::sismember($redis_key, $param['uid']);
+        if ($param['status'] == 'on') {
+            if (!$log) {
+                Redis::sadd($redis_key, $param['uid']);
+                $model->increment($vote_field);
+            }
+        } else {
+            if ($log) {
+                Redis::srem($redis_key, $param['uid']);
+                $model->decrement($vote_field);
+            }
+        }
+
+        $model->save();
+
+        $num = $model->$vote_field;
+
+        return $num;
+    }
+
+    public static function getModelByType($type, $id)
+    {
+        if ($type == 'comment') {
+            $model = Comment::find($id);
+        } else {
+            $model = Reply::find($id);
+        }
+        return $model;
     }
 
     //判断被@用户是否存在

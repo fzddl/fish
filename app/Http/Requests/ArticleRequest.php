@@ -25,4 +25,21 @@ class ArticleRequest extends BaseRequest
         ];
     }
 
+    public function ruleFavorite()
+    {
+        return [
+            'article_id' => 'required|int|min:1',
+            'status' => ['required', Rule::in(['on', 'off'])]
+        ];
+    }
+
+    public function ruleVote()
+    {
+        return [
+            'article_id' => 'required|int|min:1',
+            'type' => ['required', Rule::in(['up', 'down'])],
+            'status' => ['required', Rule::in(['on', 'off'])]
+        ];
+    }
+
 }

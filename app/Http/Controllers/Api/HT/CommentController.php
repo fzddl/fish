@@ -89,4 +89,24 @@ class CommentController extends Controller
 
         return $this->success($res);
     }
+
+    //点赞/反对
+    public function vote(CommentRequest $request)
+    {
+        $param = $request->all();
+
+        $model = CommentService::getModelByType($param['comment_type'], $param['id']);
+
+        if (!$model) {
+            return $this->error('The comment is not exist');
+        }
+
+        if (empty($param['uid'])) { //调试
+            $param['uid'] = $request->get('_user')->id;
+        }
+
+        $res = $this->commentService->vote($param, $model);
+
+        return $this->success($res);
+    }
 }

@@ -34,4 +34,14 @@ class CommentRequest extends BaseRequest
         ];
     }
 
+    public function ruleVote()
+    {
+        return [
+            'id' => 'required|int|min:1',
+            'comment_type' => ['required', Rule::in(['comment', 'reply'])],
+            'type' => ['required', Rule::in(['up', 'down'])],
+            'status' => ['required', Rule::in(['on', 'off'])]
+        ];
+    }
+
 }

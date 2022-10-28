@@ -9,17 +9,84 @@ use Laravel\Scout\Searchable;
 
 class Article extends Model
 {
-    use HasFactory;
-    use Searchable;
+    use HasFactory, Searchable;
 
     protected $fillable = [
-        'title', 'pic', 'content', 'latitude', 'longitude', 'visible', 'iso', 'ip',
-        'uid', 'topic_id_str', 'topic_title_str'
+        'title', 'pic', 'content', 'latitude', 'longitude', 'local_name', 'visible', 'iso', 'ip',
+        'uid', 'topic_id_str', 'topic_title_str', 'vote_up_count', 'vote_down_count'
     ];
+
+    public function toSearchableArray()
+    {
+        $array = $this->toArray();
+
+        $array['location'] = $array['longitude'] . ',' . $array['latitude'];
+
+        unset($array['latitude'], $array['longitude']);
+
+        return $array;
+    }
+
+    public static function createIndex($es)
+    {
+        $properties = [
+
+            'id' => [
+                'type' => 'integer',
+            ],
+            'uid' => [
+                'type' => 'integer',
+            ],
+            'title' => [
+                'type' => 'text',
+            ],
+            'content' => [
+                'type' => 'text'
+            ],
+            'topic_title_str' => [
+                'type' => 'text'
+            ],
+            'visible' => [
+                'type' => 'integer',
+            ],
+            'vote_up_count' => [
+                'type' => 'integer',
+            ],
+            'vote_down_count' => [
+                'type' => 'integer',
+            ],
+            'local_name' => [
+                'type' => 'keyword',
+            ],
+            'ip' => [
+                'type' => 'keyword'
+            ],
+            'iso' => [
+                'type' => 'keyword'
+            ],
+            'created_time' => [
+                'type' => 'date'
+            ],
+            'topic_id_str' => [
+                'type' => 'keyword'
+            ],
+            'location' => [
+                'type' => 'geo_point'
+            ],
+        ];
+
+        if (!$es->existIndex()) {
+            $es->createIndex($properties, 1, 1);
+        }
+    }
 
     public static function es()
     {
         $config = ['index' => 'articles'];
-        return new Es7($config);
+        $es = new Es7($config);
+
+        self::createIndex($es);
+
+        return $es;
     }
 }
